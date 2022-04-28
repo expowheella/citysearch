@@ -1,76 +1,81 @@
-from django.core.cache import cache
-from django.core.cache.backends.locmem import LocMemCache
-from django.forms import model_to_dict
-from rest_framework import generics, status
-from django.shortcuts import render
-from rest_framework.renderers import JSONRenderer
-import io
-from rest_framework.parsers import JSONParser
-from rest_framework.validators import UniqueTogetherValidator
-
-import cities.settings as settings
-from .models import City
-from .serializers import CitySerializer
-from rest_framework.views import APIView
-from rest_framework.response import Response
-
-from rest_framework.decorators import api_view
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
-
-from django.views.decorators.cache import cache_page
-from django.core.cache.backends.base import DEFAULT_TIMEOUT
-
-CACHE_TTL = getattr(settings, 'CACHE_TTL', DEFAULT_TIMEOUT)
-
-
-
-# class CityAPIView(generics.ListAPIView):
-#     queryset = City.objects.all()
-#     serializer_class = CitySerializer
-
-
-class CityAPIView(APIView):
-
-    def get(self, request):# request содержит все параметры входящего get запроса
-        val = request.data['name']
-        if val in cache:
-            return {'cache', cache.get('cities')}
-
-        # check if city is in database and return True if it is there
-        # elif City.objects.all().filter(name=request.data['name']).values().exists():
-        # #     print('elif')
-        #      return Response({'result': 'if True'})
-        # return False if the city is new here, and add the new city in the database
-        else:
-            serializer = CitySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()  # вызывыет метод CitySerializer.create()
-
-            cache.set('name', serializer.save())
-
-            # return Response({'cities': serializer.data})  # результат метода CitySerializer.create()
-            return Response({'result': False})
+from rest_framework.generics import RetrieveUpdateAPIView
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import City
+from .serializers import CitySerializer
+from django.http import JsonResponse
+from rest_framework import status, generics
+from django.db import IntegrityError
+from django.core.cache import cache
+import json
 
 
+class GetCity(APIView):
 
-    def post(self, request):  # request содержит все параметры входящего post запроса
+
+    def get(self, request):
         serializer = CitySerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save() # вызывыет метод CitySerializer.create()
+        serializer.is_valid()
+
+        cities_id = request.data["city_id"]
+
+        if cache.get(cities_id):
+            city = cache.get(cities_id)
+            print(f'GET from cache {city}')
+
+            content = {
+                "name": city,
+
+            }
+            return JsonResponse({"name": str(city),
+                                 "city_id": cities_id}
+                                ,safe=False)
+
+            # return Response(json.loads('{city}'))
 
 
-        return Response({'cities': serializer.data}) # результат метода CitySerializer.create()
-#
-#     if User.objects.filter(email=cleaned_info['username']).exists():
-#     # at least one object satisfying query exists
-#     else:
-# # no object satisfying query exists
+        else:
 
-# @api_view(['GET'])
-# def view_cached_cities(request):
-#     if 'name' in cache:
-#         # get results from cache
-#         products = cache.get('name')
-#         return Response(products, status=status.HTTP_201_CREATED)
+            try:
+
+
+                city = City.objects.get(city_id=cities_id)
+                print("PUT in cash")
+                cache.set(
+                    cities_id,
+                    city
+                    # request.data
+                )
+                print('GET from database')
+
+
+
+
+            except City.DoesNotExist:
+                return Response({'Not exist in db'})
+
+
+        print('GET from database')
+        return Response({'name': serializer.data})
+
+
+
+
+    # def post(self, request, *args, **kwargs):
+    #     city_id = kwargs["city_id"]
+    #     serializer = CitySerializer(data=request.data)
+    #
+    #     try:
+    #         if serializer.is_valid():
+    #             serializer.save()
+    #             print(serializer.data)
+    #             # cache.set({'name'}, serializer.data, timeout=None)
+    #             cache.set(key='city_id', serializer.data, timeout=None)
+    #             print(f'выполнен POST-запрос {serializer.data}')
+    #             return Response(serializer.data, status=status.HTTP_201_CREATED)
+    #     except IntegrityError:
+    #         print(f'Не выполнен POST-запрос {request.data}')
+    #         return Response({'name': serializer.data})
