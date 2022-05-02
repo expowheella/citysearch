@@ -31,7 +31,6 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'cacheops',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -133,8 +132,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379',
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'OPTIONS': {
+            'MAX_ENTRIES': 3
+        }
     }
 }
 
@@ -143,17 +144,3 @@ REST_FRAMEWORK = {
     'rest_framework.permissions.AllowAny',
     ]
 }
-#
-CACHEOPS_REDIS = {
-    'host': 'localhost',
-    'port': 6379,
-    'socket_timeout': 10,
-}
-
-# CACHEOPS_REDIS = "redis://:password@localhost:6379/1"
-
-
-CACHEOPS = {
-    'searchapp.city': {'ops': 'get', 'timeout': 60*15},
-}
-cache_on_save='name'

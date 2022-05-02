@@ -1,66 +1,44 @@
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
-from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import City
-from .serializers import CitySerializer
-from django.http import JsonResponse
-from rest_framework import status, generics
-from django.db import IntegrityError
-from django.core.cache import cache
-import json
 
+from searchapp.serializers import CitySerializer
+from .models import City
+from django.http import JsonResponse
+from django.core.cache import cache
+from django.db import IntegrityError
 
 class GetCity(APIView):
-
-
     def get(self, request):
-        serializer = CitySerializer(data=request.data)
-        serializer.is_valid()
 
-        cities_id = request.data["city_id"]
+        city_name = request.data["name"]
+        print(city_name)
 
-        if cache.get(cities_id):
-            city = cache.get(cities_id)
+        if cache.get(city_name):
+            city = cache.get(city_name)
             print(f'GET from cache {city}')
-
-            content = {
-                "name": city,
-
-            }
-            return JsonResponse({"name": str(city),
-                                 "city_id": cities_id}
-                                ,safe=False)
-
-            # return Response(json.loads('{city}'))
-
+            return JsonResponse({"name": str(city)}, safe=False)
 
         else:
 
             try:
-
-
-                city = City.objects.get(city_id=cities_id)
+                city = City.objects.get(name=city_name)
                 print("PUT in cash")
-                cache.set(
-                    cities_id,
-                    city
-                    # request.data
-                )
+                cache.set(city_name, city_name)
                 print('GET from database')
 
-
-
-
             except City.DoesNotExist:
-                return Response({'Not exist in db'})
-
+                serializer = CitySerializer(data=request.data)
+                try:
+                    if serializer.is_valid():
+                        serializer.save()
+                        print(f"{city_name} is added in the db")
+                        return Response({'New city is added into the database'})
+                except IntegrityError:
+                    print(f'POST-request is failed {request.data}')
+                    return Response({'no such city'})
 
         print('GET from database')
-        return Response({'name': serializer.data})
-
+        return JsonResponse({"name": str(city)}, safe=False)
 
 
 
