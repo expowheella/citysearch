@@ -42,7 +42,7 @@ class GetCity(APIView):
                         print(f"ADD {city_name} in the db & cache")
                         # and add it into cache
                         cache.set(city_name, city_name)
-                        return Response({'New city is added into the database'})
+                        # return Response({'New city is added into the database'})
                         # ACCORDING TO THE TASK --> return False if the city doesn't exist
                         return Response({False})
 
