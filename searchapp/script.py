@@ -3,6 +3,7 @@ import requests
 from cities.settings import BASE_DIR
 
 
+
 def test_1():
     file = BASE_DIR/'hundred_thousand_cities_full.xlsx'
     wb = load_workbook(file)
@@ -17,7 +18,7 @@ def test_1():
         pass
 
     with open(BASE_DIR/'result.txt', 'a', encoding="UTF-8") as f:
-        for row in ws.rows:
+        for row in ws.iter_rows(min_row=88780):
             for cell in row:
                 r = requests.get('http://127.0.0.1:8000/', data={'name': cell.value})
                 print(f"{cell.value} -> {r.text}")
@@ -25,3 +26,10 @@ def test_1():
     f.close
 
 test_1()
+
+
+def test_2():
+    r = requests.get('http://127.0.0.1:8000/', data={'name': "Mazara Del Vallo"})
+    print(f"{r.text}")
+
+# test_2()
